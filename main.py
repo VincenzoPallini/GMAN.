@@ -3,10 +3,9 @@ import time
 import torch.optim as optim
 import torch.nn as nn
 import numpy as np
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from utils.utils_ import log_string, plot_train_val_loss
+from utils.utils_ import log_string, metric
 from utils.utils_ import count_parameters, load_data
 
 from model.model_ import GMAN
@@ -51,65 +50,63 @@ parser.add_argument('--model_file', default='/kaggle/working/GMAN./data/GMAN.pkl
 parser.add_argument('--log_file', default='/kaggle/working/GMAN./data/log',
                     help='log file')
 args = parser.parse_args()
-log = open(args.log_file, 'w')
-log_string(log, str(args)[10: -1])
-T = 24 * 60 // args.time_slot  # Number of time steps in one day
 
-# load data
-log_string(log, 'loading data...')
-(trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
- testY, SE, mean, std) = load_data(args)
-log_string(log, f'trainX: {trainX.shape}\t\t trainY: {trainY.shape}')
-log_string(log, f'valX:   {valX.shape}\t\tvalY:   {valY.shape}')
-log_string(log, f'testX:   {testX.shape}\t\ttestY:   {testY.shape}')
-log_string(log, f'mean:   {mean:.4f}\t\tstd:   {std:.4f}')
-log_string(log, 'data loaded!')
-del trainX, trainTE, valX, valTE, testX, testTE, mean, std
+def main():
+    log = open(args.log_file, 'w')
+    log_string(log, str(args)[10: -1])
+    T = 24 * 60 // args.time_slot  # Number of time steps in one day
 
-# build model
-log_string(log, 'compiling model...')
+    # load data
+    log_string(log, 'loading data...')
+    (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
+     testY, SE, mean, std) = load_data(args)
+    log_string(log, f'trainX: {trainX.shape}\t\t trainY: {trainY.shape}')
+    log_string(log, f'valX:   {valX.shape}\t\tvalY:   {valY.shape}')
+    log_string(log, f'testX:   {testX.shape}\t\ttestY:   {testY.shape}')
+    log_string(log, f'mean:   {mean:.4f}\t\tstd:   {std:.4f}')
+    log_string(log, 'data loaded!')
 
-model = GMAN(SE, args, bn_decay=0.1)
-loss_criterion = nn.MSELoss()
+    # build model
+    log_string(log, 'compiling model...')
+    model = GMAN(SE, args, bn_decay=0.1)
+    loss_criterion = nn.MSELoss()
+    optimizer = optim.Adam(model.parameters(), args.learning_rate)
+    scheduler = optim.lr_scheduler.StepLR(optimizer,
+                                          step_size=args.decay_epoch,
+                                          gamma=0.9)
+    parameters = count_parameters(model)
+    log_string(log, 'trainable parameters: {:,}'.format(parameters))
 
-optimizer = optim.Adam(model.parameters(), args.learning_rate)
-scheduler = optim.lr_scheduler.StepLR(optimizer,
-                                      step_size=args.decay_epoch,
-                                      gamma=0.9)
-parameters = count_parameters(model)
-log_string(log, 'trainable parameters: {:,}'.format(parameters))
-
-if __name__ == '__main__':
+    # train model
     start = time.time()
     loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler)
-    plot_train_val_loss(loss_train, loss_val, '/kaggle/working/GMAN./figure/train_val_loss.png')
-    
+    log_string(log, 'Training completed')
+
+    # test model
     log_string(log, 'Testing model...')
     trainPred, valPred, testPred = test(args, log)
+    
+    # Print final results
+    train_mae, train_rmse, train_mape = metric(trainPred, trainY)
+    val_mae, val_rmse, val_mape = metric(valPred, valY)
+    test_mae, test_rmse, test_mape = metric(testPred, testY)
+    log_string(log, '                MAE\t\tRMSE\t\tMAPE')
+    log_string(log, 'train            %.2f\t\t%.2f\t\t%.2f%%' %
+               (train_mae, train_rmse, train_mape * 100))
+    log_string(log, 'val              %.2f\t\t%.2f\t\t%.2f%%' %
+               (val_mae, val_rmse, val_mape * 100))
+    log_string(log, 'test             %.2f\t\t%.2f\t\t%.2f%%' %
+               (test_mae, test_rmse, test_mape * 100))
+
+    # Print performance for each prediction step
+    log_string(log, 'Performance in each prediction step')
+    for step in range(args.num_pred):
+        mae, rmse, mape = metric(testPred[:, step], testY[:, step])
+        log_string(log, f'Step {step + 1:02d}: MAE {mae:.2f}, RMSE {rmse:.2f}, MAPE {mape * 100:.2f}%')
+
     end = time.time()
-    log_string(log, 'total time: %.1fmin' % ((end - start) / 60))
+    log_string(log, f'Total time: {(end - start) / 60:.1f} minutes')
     log.close()
 
-    # Saving results
-    log_string(log, 'Saving results...')
-    results = [trainPred, trainY, valPred, valY, testPred, testY]
-    names = ['trainPred', 'trainY', 'valPred', 'valY', 'testPred', 'testY']
-    
-    for data, name in tqdm(zip(results, names), total=len(names), desc="Saving results"):
-        np.savetxt(f'/kaggle/working/GMAN./figure/{name}.txt', data.numpy().reshape(-1, data.shape[-1]), fmt='%s')
-
-    # Plot the test prediction vs target
-    log_string(log, 'Plotting test results...')
-    plt.figure(figsize=(10, 280))
-    for k in tqdm(range(325), desc="Plotting test results"):
-        plt.subplot(325, 1, k + 1)
-        for j in range(len(testPred)):
-            c = testPred[j, :, k].numpy()
-            d = testY[j, :, k].numpy()
-            plt.plot(range(1 + j, 13 + j), c, c='b')
-            plt.plot(range(1 + j, 13 + j), d, c='r')
-    plt.title('Test prediction vs Target')
-    plt.savefig('/kaggle/working/GMAN./figure/test_results.png')
-    plt.close()
-
-    log_string(log, 'All tasks completed!')
+if __name__ == '__main__':
+    main()
