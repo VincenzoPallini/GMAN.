@@ -1,10 +1,10 @@
-
 import argparse
 import time
 import torch.optim as optim
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from utils.utils_ import log_string, plot_train_val_loss
 from utils.utils_ import count_parameters, load_data
