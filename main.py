@@ -82,7 +82,7 @@ log_string(log, 'trainable parameters: {:,}'.format(parameters))
 if __name__ == '__main__':
     start = time.time()
     loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler)
-    plot_train_val_loss(loss_train, loss_val, 'figure/train_val_loss.png')
+    plot_train_val_loss(loss_train, loss_val, '/kaggle/working/GMAN./figure/train_val_loss.png')
     
     log_string(log, 'Testing model...')
     trainPred, valPred, testPred = test(args, log)
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     names = ['trainPred', 'trainY', 'valPred', 'valY', 'testPred', 'testY']
     
     for data, name in tqdm(zip(results, names), total=len(names), desc="Saving results"):
-        np.savetxt(f'./figure/{name}.txt', data.numpy().reshape(-1, data.shape[-1]), fmt='%s')
+        np.savetxt(f'/kaggle/working/GMAN./figure/{name}.txt', data.numpy().reshape(-1, data.shape[-1]), fmt='%s')
 
     # Plot the test prediction vs target
     log_string(log, 'Plotting test results...')
@@ -109,7 +109,7 @@ if __name__ == '__main__':
             plt.plot(range(1 + j, 13 + j), c, c='b')
             plt.plot(range(1 + j, 13 + j), d, c='r')
     plt.title('Test prediction vs Target')
-    plt.savefig('./figure/test_results.png')
+    plt.savefig('/kaggle/working/GMAN./figure/test_results.png')
     plt.close()
 
     log_string(log, 'All tasks completed!')
