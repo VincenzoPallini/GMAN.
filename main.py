@@ -54,6 +54,7 @@ args = parser.parse_args()
 log = open(args.log_file, 'w')
 log_string(log, str(args)[10: -1])
 T = 24 * 60 // args.time_slot  # Number of time steps in one day
+
 # load data
 log_string(log, 'loading data...')
 (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
@@ -64,6 +65,7 @@ log_string(log, f'testX:   {testX.shape}\t\ttestY:   {testY.shape}')
 log_string(log, f'mean:   {mean:.4f}\t\tstd:   {std:.4f}')
 log_string(log, 'data loaded!')
 del trainX, trainTE, valX, valTE, testX, testTE, mean, std
+
 # build model
 log_string(log, 'compiling model...')
 
@@ -81,33 +83,33 @@ if __name__ == '__main__':
     start = time.time()
     loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler)
     plot_train_val_loss(loss_train, loss_val, 'figure/train_val_loss.png')
+    
+    log_string(log, 'Testing model...')
     trainPred, valPred, testPred = test(args, log)
     end = time.time()
     log_string(log, 'total time: %.1fmin' % ((end - start) / 60))
     log.close()
-    trainPred_ = trainPred.numpy().reshape(-1, trainY.shape[-1])
-    trainY_ = trainY.numpy().reshape(-1, trainY.shape[-1])
-    valPred_ = valPred.numpy().reshape(-1, valY.shape[-1])
-    valY_ = valY.numpy().reshape(-1, valY.shape[-1])
-    testPred_ = testPred.numpy().reshape(-1, testY.shape[-1])
-    testY_ = testY.numpy().reshape(-1, testY.shape[-1])
 
-    # Save training, validation and testing datas to disk
-    l = [trainPred_, trainY_, valPred_, valY_, testPred_, testY_]
-    name = ['trainPred', 'trainY', 'valPred', 'valY', 'testPred', 'testY']
-    for i, data in enumerate(l):
-        np.savetxt('./figure/' + name[i] + '.txt', data, fmt='%s')
-        
-    # Plot the test prediction vs target（optional)
+    # Saving results
+    log_string(log, 'Saving results...')
+    results = [trainPred, trainY, valPred, valY, testPred, testY]
+    names = ['trainPred', 'trainY', 'valPred', 'valY', 'testPred', 'testY']
+    
+    for data, name in tqdm(zip(results, names), total=len(names), desc="Saving results"):
+        np.savetxt(f'./figure/{name}.txt', data.numpy().reshape(-1, data.shape[-1]), fmt='%s')
+
+    # Plot the test prediction vs target
+    log_string(log, 'Plotting test results...')
     plt.figure(figsize=(10, 280))
-    for k in range(325):
+    for k in tqdm(range(325), desc="Plotting test results"):
         plt.subplot(325, 1, k + 1)
         for j in range(len(testPred)):
-            c, d = [], []
-            for i in range(12):
-                c.append(testPred[j, i, k])
-                d.append(testY[j, i, k])
-            plt.plot(range(1 + j, 12 + 1 + j), c, c='b')
-            plt.plot(range(1 + j, 12 + 1 + j), d, c='r')
+            c = testPred[j, :, k].numpy()
+            d = testY[j, :, k].numpy()
+            plt.plot(range(1 + j, 13 + j), c, c='b')
+            plt.plot(range(1 + j, 13 + j), d, c='r')
     plt.title('Test prediction vs Target')
     plt.savefig('./figure/test_results.png')
+    plt.close()
+
+    log_string(log, 'All tasks completed!')
