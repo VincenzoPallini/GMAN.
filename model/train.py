@@ -3,6 +3,7 @@ import time
 import math
 import numpy as np
 from utils.utils_ import log_string, load_data
+import utils.utils_ as utils  # Import utils properly
 
 print("train.py: Imported modules successfully")
 print("train.py: utils.utils_ contains:", dir(utils.utils_))
