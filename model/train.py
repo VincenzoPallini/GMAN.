@@ -5,7 +5,6 @@ import numpy as np
 from utils.utils_ import log_string, load_data
 
 print("train.py: Imported modules successfully")
-print("train.py: utils.utils_ contains:", dir(utils.utils_))
 
 def train(model, args, log, loss_criterion, optimizer, scheduler, device):
     print("train function called with args:", args)
