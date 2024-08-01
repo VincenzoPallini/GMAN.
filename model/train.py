@@ -3,12 +3,11 @@ import time
 import math
 import numpy as np
 from utils.utils_ import log_string, load_data
-import utils.utils_ as utils  # Import utils properly
 
 print("train.py: Imported modules successfully")
 print("train.py: utils.utils_ contains:", dir(utils.utils_))
 
-def train(model, args, log, loss_criterion, optimizer, scheduler):
+def train(model, args, log, loss_criterion, optimizer, scheduler, device):
     print("train function called with args:", args)
     try:
         (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
@@ -18,8 +17,7 @@ def train(model, args, log, loss_criterion, optimizer, scheduler):
         print(f"Error in load_data: {e}")
         raise
 
-    # Move data to the same device as the model
-    device = next(model.parameters()).device
+    # Move data to the specified device
     trainX, trainTE, trainY = trainX.to(device), trainTE.to(device), trainY.to(device)
     valX, valTE, valY = valX.to(device), valTE.to(device), valY.to(device)
     
