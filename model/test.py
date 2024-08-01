@@ -5,13 +5,12 @@ import numpy as np
 from utils.utils_ import log_string, metric
 from utils.utils_ import load_data
 
-def test(args, log):
+def test(args, log, device):
     (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
      testY, SE, mean, std) = load_data(args)
     
-    # Load the model and move it to the appropriate device
-    model = torch.load(args.model_file)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Load the model and move it to the specified device
+    model = torch.load(args.model_file, map_location=device)
     model = model.to(device)
     
     # Move data to the same device as the model
@@ -64,32 +63,4 @@ def test(args, log):
         start_test = time.time()
         for batch_idx in range(test_num_batch):
             start_idx = batch_idx * args.batch_size
-            end_idx = min(num_test, (batch_idx + 1) * args.batch_size)
-            X = testX[start_idx: end_idx]
-            TE = testTE[start_idx: end_idx]
-            pred_batch = model(X, TE)
-            testPred.append(pred_batch.cpu().numpy())
-        testPred = np.concatenate(testPred, axis=0)
-        testPred = testPred * std + mean
-    end_test = time.time()
-
-    train_mae, train_rmse, train_mape = metric(trainPred, trainY.cpu().numpy())
-    val_mae, val_rmse, val_mape = metric(valPred, valY.cpu().numpy())
-    test_mae, test_rmse, test_mape = metric(testPred, testY.cpu().numpy())
-    
-    log_string(log, 'testing time: %.1fs' % (end_test - start_test))
-    log_string(log, '                MAE\t\tRMSE\t\tMAPE')
-    log_string(log, 'train            %.2f\t\t%.2f\t\t%.2f%%' %
-               (train_mae, train_rmse, train_mape * 100))
-    log_string(log, 'val              %.2f\t\t%.2f\t\t%.2f%%' %
-               (val_mae, val_rmse, val_mape * 100))
-    log_string(log, 'test             %.2f\t\t%.2f\t\t%.2f%%' %
-               (test_mae, test_rmse, test_mape * 100))
-    log_string(log, 'performance in each prediction step')
-    
-    for step in range(args.num_pred):
-        test_mae, test_rmse, test_mape = metric(testPred[:, step], testY[:, step].cpu().numpy())
-        log_string(log, 'step: %02d         %.2f\t\t%.2f\t\t%.2f%%' %
-                   (step + 1, test_mae, test_rmse, test_mape * 100))
-    
-    return trainPred, valPred, testPred
+            end_idx = min(num_test, (
