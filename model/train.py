@@ -2,14 +2,21 @@ import torch
 import time
 import math
 import numpy as np
-from utils.utils_ import log_string
-from utils.utils_ import load_data
+from utils.utils_ import log_string, load_data
+
+print("train.py: Imported modules successfully")
 print("train.py: utils.utils_ contains:", dir(utils.utils_))
+
 def train(model, args, log, loss_criterion, optimizer, scheduler):
     print("train function called with args:", args)
-    (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
-     testY, SE, mean, std) = load_data(args)
-    print("train function called with args:", args)
+    try:
+        (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
+         testY, SE, mean, std) = load_data(args)
+        print("load_data executed successfully")
+    except Exception as e:
+        print(f"Error in load_data: {e}")
+        raise
+
     # Move data to the same device as the model
     device = next(model.parameters()).device
     trainX, trainTE, trainY = trainX.to(device), trainTE.to(device), trainY.to(device)
