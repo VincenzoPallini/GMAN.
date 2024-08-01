@@ -39,6 +39,8 @@ def seq2instance(data, num_his, num_pred):
 
 
 def load_data(args):
+    print("load_data function called with args:", args)
+
     # Traffic
     df = pd.read_hdf(args.traffic_file)
     traffic = torch.from_numpy(df.values)
@@ -152,3 +154,6 @@ def save_test_result(trainPred, trainY, valPred, valY, testPred, testY):
     with open('./figure/test_results.txt', 'w+') as f:
         for l in (trainPred, trainY, valPred, valY, testPred, testY):
             f.write(list(l))
+
+print("utils_.py loaded successfully")
+
