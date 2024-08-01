@@ -3,6 +3,7 @@ import time
 import math
 import numpy as np
 from utils.utils_ import log_string
+from utils.utils_ import load_data
 
 def train(model, args, log, loss_criterion, optimizer, scheduler):
     (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
