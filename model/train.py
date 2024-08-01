@@ -4,11 +4,12 @@ import math
 import numpy as np
 from utils.utils_ import log_string
 from utils.utils_ import load_data
-
+print("train.py: utils.utils_ contains:", dir(utils.utils_))
 def train(model, args, log, loss_criterion, optimizer, scheduler):
+    print("train function called with args:", args)
     (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
      testY, SE, mean, std) = load_data(args)
-    
+    print("train function called with args:", args)
     # Move data to the same device as the model
     device = next(model.parameters()).device
     trainX, trainTE, trainY = trainX.to(device), trainTE.to(device), trainY.to(device)
